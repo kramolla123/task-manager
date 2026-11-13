@@ -54,7 +54,7 @@ export function DeadlineLabel({
   );
 }
 
-export function Avatar({ person, className }: { person?: Profile | null; className?: string }) {
+export function Avatar({ person, className }: { person?: Profile | null | undefined; className?: string }) {
   return (
     <span
       title={personName(person)}
@@ -68,7 +68,7 @@ export function Avatar({ person, className }: { person?: Profile | null; classNa
   );
 }
 
-export function PersonChip({ person }: { person?: Profile | null }) {
+export function PersonChip({ person }: { person?: Profile | null | undefined }) {
   if (!person) return <span className="text-muted-foreground">—</span>;
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
