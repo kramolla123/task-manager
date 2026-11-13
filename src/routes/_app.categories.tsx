@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { hasPermission } from "@/lib/permissions";
 import type { Category } from "@/lib/types";
 
 export const Route=createFileRoute("/_app/categories")({component:CategoriesPage});
@@ -18,7 +19,7 @@ function CategoriesPage(){
  const [busy,setBusy]=useState(false);
  if(q.isPending)return <LoadingState/>;
  if(q.error)return <ErrorState error={q.error} onRetry={()=>q.refetch()}/>;
- const canEdit=me.role==="production_head";
+ const canEdit=hasPermission(me,"categories.manage");
  const save=async()=>{
   if(!editing?.name?.trim() || !editing?.route || !(Number(editing.deadline_days)>0)) {toast.error("Заполните название, маршрут и норматив");return;}
   setBusy(true);
