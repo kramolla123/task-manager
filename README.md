@@ -1,29 +1,66 @@
-# Welcome to your Lovable project
+# Task Manager — AI Content Production CRM
 
-This project was built with [Lovable](https://lovable.dev).
+Внутреннее приложение для управления полным циклом создания AI-фотоконтента по ТЗ: заявки, распределение работ, стилизация, загрузка и версионирование изображений, согласования, доработки, дизайнерская воронка, CTR-тестирование и аналитика.
 
-## Build with Lovable
+## Ссылки
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- GitHub: https://github.com/kramolla123/task-manager
+- Supabase: https://supabase.com/dashboard/project/oyrpoxnmprwomcbkjgfv
+- Lovable: https://lovable.dev/projects/2a1af4cc-4d34-441e-8c4a-385bd33e6e3a
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+**Важно:** Lovable создал начальную версию интерфейса, но последующие изменения в этом репозитории делались через GitHub API. Синхронизация с Lovable не подтверждена; содержимое предпросмотра Lovable может отличаться от ветки `main`.
 
-## Development
+## Архитектура
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+- **UI**: React 19, TypeScript, TanStack Start/Router, TanStack Query, Tailwind CSS и shadcn/ui.
+- **Авторизация**: Supabase Auth (email/password), роли в `public.profiles` и проверка на сервере.
+- **Хранилище**: приватный Supabase Storage bucket `task-assets` с ограничением доступа через RLS.
+- **Серверная бизнес-логика**: Edge Function `task-command` вызывает PostgreSQL RPC `task_transition` от имени пользователя, под его JWT. Все переходы и записи выполняются атомарно с блокировкой записи задачи.
+- **Версионность материалов**: `asset_slots` + `asset_versions`, отказ по конкретному изображению/циклу `review_rejections`, журнал событий `task_events`.
+- **Деплой схемы**: отсортированные SQL-миграции в `supabase/migrations`; исходник Edge Function в `supabase/functions/task-command/index.ts`.
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+## Локальная разработка
+
+Нужны Node.js 22+, Corepack/pnpm. Из корня репозитория:
+
+```bash
+corepack enable
+corepack pnpm@10.22.0 install --no-frozen-lockfile
+cp .env.example .env.local
+corepack pnpm@10.22.0 run dev
 ```
 
-## Built with
+Для проверки без запуска сервера:
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+```bash
+corepack pnpm@10.22.0 run typecheck
+corepack pnpm@10.22.0 run build
+```
+
+Публикуемые переменные `VITE_SUPABASE_URL` и `VITE_SUPABASE_PUBLISHABLE_KEY` не являются секретами. **Никогда не сохраняйте service_role / sb_secret ключи в клиентских исходниках.**
+
+## Первоначальная настройка доступа
+
+Все новые пользователи создаются с ролью `pending`: самостоятельное назначение ролей запрещено. Чтобы создать **первого** руководителя производства, зарегистрируйте пользователя через интерфейс Supabase Auth и в **SQL Editor** существующего проекта вручную назначьте роль, заранее проверив email:
+
+```sql
+select id, email from auth.users where email = 'ADMIN_EMAIL_HERE';
+-- Только после проверки точного адреса:
+update public.profiles
+set role = 'production_head', active = true
+where id = (select id from auth.users where email = 'ADMIN_EMAIL_HERE');
+```
+
+Не запускайте этот SQL для произвольного email. После этого руководитель сможет назначать роли через раздел «Сотрудники». Продакшен использует роли `production_head`, `sales_head`, `sales_manager`, `creator`, `stylist`, `designer`.
+
+## Производственные маршруты
+
+1. «Тестирование ГФ» и «Новинка»: создание → назначение креатора → (при необходимости стилист) → AI → согласование с пофайловыми отказами → утверждение → тестирование → CTR и скриншоты → завершение.
+2. «Воронка для ГФ»: AI цикл → утверждённые AI-файлы доступны инициатору → дизайнер / Canva → согласование / правки → завершение.
+3. Повторная незавершённая заявка на тот же LD-артикул внутри категории отклоняется частичным уникальным индексом.
+4. Норматив категории применяется при создании новой задачи, поэтому изменение категории не меняет дедлайны ранее созданных заявок.
+5. Одновременные попытки забрать задачу сериализуются в PostgreSQL; редактирование использует номер версии и отклоняет устаревшие данные.
+
+## Что нужно проверить перед эксплуатацией
+
+GitHub Actions запускает установку зависимостей, TypeScript и сборку на каждом push. Это **не** доказывает правильность всех сценариев ТЗ. Перед реальным использованием необходимо выполнить функциональные проверки всех 20 пунктов приёмки, включая матрицу доступа разных ролей, параллельное назначение, загрузку/замену изображений, расчёт повторных отказов и сценарии дизайна и тестирования, а также настроить регламент резервного копирования. Утверждение готовности к эксплуатации — за руководителем отдела автоматизации.
