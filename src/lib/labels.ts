@@ -2,7 +2,8 @@ import type { AssetKind, Priority, ReviewState, Role, TaskStatus } from "./types
 
 export type Tone = "neutral" | "info" | "progress" | "warn" | "success" | "danger" | "design";
 
-export const ROLE_LABELS: Record<Role, string> = {
+export const ROLE_LABELS: Record<string, string> = {
+  superuser: "Superuser",
   production_head: "Руководитель производства",
   sales_head: "Руководитель продаж",
   sales_manager: "Менеджер",
