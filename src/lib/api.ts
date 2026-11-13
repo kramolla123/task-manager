@@ -304,3 +304,19 @@ export async function fetchRejectionsBetween(from: string, to: string): Promise<
       .limit(5000),
   )) ?? []) as ReviewRejection[];
 }
+/** Custom roles are edited only through audited, superuser-protected RPC. */
+export async function manageRole(input: {
+ action: "create" | "update" | "delete";
+ slug: string;
+ name: string;
+ description: string;
+ permissions: string[];
+ active: boolean;
+}) {
+ const { data, error } = await supabase.rpc("manage_role", {
+  p_action: input.action, p_slug: input.slug, p_name: input.name,
+  p_description: input.description, p_permissions: input.permissions, p_active: input.active,
+ });
+ if(error) throw new AppError(await errorMessage(error));
+ return data;
+}
