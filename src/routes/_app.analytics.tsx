@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMe } from "@/hooks/use-auth";
+import { hasPermission } from "@/lib/permissions";
 import { useTasks } from "@/hooks/use-data";
 import { fetchRejectionsBetween,qk } from "@/lib/api";
 import { PageHeader,LoadingState,ErrorState } from "@/components/common";
@@ -13,7 +14,7 @@ function AnalyticsPage(){
  const [month,setMonth]=useState(()=>new Date().toISOString().slice(0,7));
  const start=month+"-01T00:00:00.000Z";
  const end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),1)).toISOString();
- const isHead=me.role==="production_head";
+ const isHead=hasPermission(me,"analytics.rejections");
  const review=useQuery({queryKey:qk.analytics(month),queryFn:()=>fetchRejectionsBetween(start,end),enabled:isHead});
  const tasks=useMemo(()=>data.tasks.filter(t=>t.created_at>=start&&t.created_at<end),[data.tasks,start,end]);
  const late=tasks.filter(t=>t.deadline_at&&new Date(t.deadline_at).getTime()<new Date(t.completed_at??Date.now()).getTime()&&t.status!=="cancelled").length;
@@ -32,7 +33,7 @@ function AnalyticsPage(){
   }
   return [...stats].map(([id,v])=>({id,name:data.profiles.map.get(id)?.full_name??id,...v})).sort((a,b)=>b.rejected-a.rejected);
  },[tasks,review.data,data.profiles.map]);
- if(!["production_head","sales_head"].includes(me.role))return <p>Аналитика доступна только руководителям.</p>;
+ if(!hasPermission(me,"analytics.view"))return <p>Аналитика доступна только руководителям.</p>;
  if(data.isPending)return <LoadingState/>;
  if(data.error)return <ErrorState error={data.error} onRetry={()=>data.refetch()}/>;
  return <div className="space-y-5">
