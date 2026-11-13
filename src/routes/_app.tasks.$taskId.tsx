@@ -32,7 +32,7 @@ function actionFields(action:TaskAction,task:Task,profiles:{id:string;full_name:
  const reason:Field={name:"reason",label:"Причина",type:"textarea",required:true};
  const employees=(r:string)=>profiles.filter(p=>p.role===r).map(p=>({value:p.id,label:p.full_name||p.id}));
  switch(action){
- case "set_stylist":return [{name:"required",label:"Нужен стилист",type:"switch",defaultValue:!!task.stylist_required},{name:"stylist_id",label:"Назначить стилиста (необязательно)",type:"select",options:employees("stylist"),showIf:v=>v.required===true}];
+ case "set_stylist":return [{name:"required",label:"Нужен стилист",type:"switch",defaultValue:!!task.stylist_required},{name:"stylist_id",label:"Назначить стилиста (необязательно)",type:"select",options:employees("stylist"),showIf:v=>v["required"]===true}];
  case "stylist_review":return [{name:"comment",label:"Заключение",type:"textarea",required:true}];
  case "reject_ai":return [reason,{name:"comment",label:"Комментарий",type:"textarea"}];
  case "approve_ai":return [{name:"bypass_reason",label:"Причина обхода стилиста (если заключения нет)",type:"textarea"}];
@@ -55,16 +55,16 @@ function actionFields(action:TaskAction,task:Task,profiles:{id:string;full_name:
 }
 function payloadFor(action:TaskAction,v:Values,selected:string[]):Record<string,unknown>{
  const str=(key:string)=>val.str(v[key]);
- if(action==="set_stylist")return {required:!!v.required,...(str("stylist_id")?{stylist_id:str("stylist_id")}:{})};
+ if(action==="set_stylist")return {required:!!v["required"],...(str("stylist_id")?{stylist_id:str("stylist_id")}:{})};
  if(action==="reject_ai"||action==="reject_design")return {slot_ids:selected,reason:str("reason"),comment:str("comment")};
  if(action==="approve_ai")return {bypass_reason:str("bypass_reason")};
  if(action==="stylist_review")return {comment:str("comment")};
- if(action==="finish_test")return {ctr_best:val.num(v.ctr_best),ctr_worst:val.num(v.ctr_worst),used_main:!!v.used_main,notes:str("notes")};
+ if(action==="finish_test")return {ctr_best:val.num(v["ctr_best"]),ctr_worst:val.num(v["ctr_worst"]),used_main:!!v["used_main"],notes:str("notes")};
  if(action==="assign")return {...(str("creator_id")?{creator_id:str("creator_id")}:{}),...(str("designer_id")?{designer_id:str("designer_id")}:{})};
  if(action==="submit_design")return {canva_url:str("canva_url"),notes:str("notes")};
- if(action==="deadline")return {deadline_at:val.iso(v.deadline_at),reason:str("reason")};
+ if(action==="deadline")return {deadline_at:val.iso(v["deadline_at"]),reason:str("reason")};
  if(action==="cancel")return {reason:str("reason")};
- if(action==="update")return {ld_article:str("ld_article"),product_url:str("product_url"),description:str("description"),source_url:str("source_url"),requested_photos:val.num(v.requested_photos),priority:str("priority")};
+ if(action==="update")return {ld_article:str("ld_article"),product_url:str("product_url"),description:str("description"),source_url:str("source_url"),requested_photos:val.num(v["requested_photos"]),priority:str("priority")};
  return {};
 }
 function DetailRow({title,children}:{title:string;children:ReactNode}){return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{title}</dt><dd className="mt-1 break-words text-sm">{children||"—"}</dd></div>}
@@ -89,7 +89,7 @@ function TaskPage(){
   if(!active)return;
   if(active==="reject_ai"&&!selected.length)throw new Error("Выберите хотя бы одно AI-изображение");
   if(active==="reject_design"&&designSlots.length>0&&!selected.length)throw new Error("Выберите файлы дизайна");
-  if(active==="assign"&&!val.str(v.creator_id)&&!val.str(v.designer_id))throw new Error("Выберите исполнителя");
+  if(active==="assign"&&!val.str(v["creator_id"])&&!val.str(v["designer_id"]))throw new Error("Выберите исполнителя");
   await mutation.mutateAsync({action:active,payload:payloadFor(active,v,selected),success:"Действие выполнено"});
   setSelected([]);
   await Promise.all([qc.invalidateQueries({queryKey:qk.task(taskId)}),qc.invalidateQueries({queryKey:qk.tasks})]);
