@@ -106,7 +106,7 @@ export function useUploadQueue(taskId: string | null) {
           size: f.size,
           progress: 0,
           stage: "queued" as const,
-          preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
+          ...(f.type.startsWith("image/") ? { preview: URL.createObjectURL(f) } : {}),
         },
       }));
       setItems((prev) => [...entries.map((e) => e.item), ...prev]);
