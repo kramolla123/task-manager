@@ -7,7 +7,7 @@ export const ROLES = [
   "designer",
   "pending",
 ] as const;
-export type Role = (typeof ROLES)[number];
+export type Role = string;
 
 export const TASK_STATUSES = [
   "to_do",
@@ -45,6 +45,7 @@ export interface Profile {
   full_name: string | null;
   telegram: string | null;
   role: Role;
+  permissions?: string[];
   active: boolean;
   created_at?: string;
 }
@@ -177,3 +178,6 @@ export type TaskAction =
   | "update"
   | "deadline"
   | "cancel";
+export interface AppRole { slug:string; name:string; description:string; is_system:boolean; active:boolean; created_at:string; }
+export interface AppPermission { key:string; label:string; group_name:string; }
+export interface AppRolePermission { role_slug:string; permission_key:string; }
