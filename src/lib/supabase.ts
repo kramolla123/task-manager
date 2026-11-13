@@ -9,9 +9,9 @@ const FALLBACK_SUPABASE_URL = "https://oyrpoxnmprwomcbkjgfv.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ccp76s-L8jcKJ4DiFQI49Q_M1nvD-pN";
 
 export const SUPABASE_URL: string =
-  (import.meta.env.VITE_SUPABASE_URL as string | undefined) || FALLBACK_SUPABASE_URL;
+  (import.meta.env["VITE_SUPABASE_URL"] as string | undefined) || FALLBACK_SUPABASE_URL;
 export const SUPABASE_PUBLISHABLE_KEY: string =
-  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+  (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ||
   FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 
 export const ASSET_BUCKET = "task-assets";
