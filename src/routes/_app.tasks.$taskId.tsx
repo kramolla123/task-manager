@@ -7,7 +7,7 @@ import { useTask,useTaskAction } from "@/hooks/use-data";
 import { useSlots,useEvents,useRejections,useComments,useDesignSubmissions,useTestResults } from "@/hooks/use-task-detail";
 import { useMe } from "@/hooks/use-auth";
 import { qk,addComment,signedUrl } from "@/lib/api";
-import { availableActions,canSeeComments,uploadableKinds } from "@/lib/permissions";
+import { availableActions,canSeeComments,uploadableKinds,hasPermission } from "@/lib/permissions";
 import { STATUS_LABELS,ACTION_LABELS,ASSET_KIND_LABELS,REJECTION_REASONS,REVIEW_STATE_LABELS } from "@/lib/labels";
 import { fmtDateTime } from "@/lib/format";
 import { DeadlineLabel,EmptyState,ErrorState,LoadingState,PageHeader,PersonChip,PriorityBadge,StatusBadge } from "@/components/common";
@@ -30,7 +30,7 @@ const actionNames:Record<TaskAction,string>={
 };
 function actionFields(action:TaskAction,task:Task,profiles:{id:string;full_name:string|null;role:string}[]):Field[]{
  const reason:Field={name:"reason",label:"Причина",type:"textarea",required:true};
- const employees=(r:string)=>profiles.filter(p=>p.role===r).map(p=>({value:p.id,label:p.full_name||p.id}));
+ const employees=(r:string)=>profiles.filter(p=>p.role===r || (r==="creator" && p.permissions?.includes("tasks.claim")) || (r==="designer" && p.permissions?.includes("design.submit")) || (r==="stylist" && p.permissions?.includes("styling.finish"))).map(p=>({value:p.id,label:p.full_name||p.id}));
  switch(action){
  case "set_stylist":return [{name:"required",label:"Нужен стилист",type:"switch",defaultValue:!!task.stylist_required},{name:"stylist_id",label:"Назначить стилиста (необязательно)",type:"select",options:employees("stylist"),showIf:v=>v["required"]===true}];
  case "stylist_review":return [{name:"comment",label:"Заключение",type:"textarea",required:true}];
@@ -83,7 +83,7 @@ function AssetThumbnail({slot}:{slot:AssetSlot}){
 function TaskPage(){
  const {taskId}=Route.useParams();
  const me=useMe(),qc=useQueryClient();
- const detail=useTask(taskId),slots=useSlots(taskId),events=useEvents(taskId),rejects=useRejections(taskId),comments=useComments(taskId,canSeeComments(me.role)),design=useDesignSubmissions(taskId),tests=useTestResults(taskId);
+ const detail=useTask(taskId),slots=useSlots(taskId),events=useEvents(taskId),rejects=useRejections(taskId),comments=useComments(taskId,canSeeComments(me)),design=useDesignSubmissions(taskId),tests=useTestResults(taskId);
  const mutation=useTaskAction(taskId),uploads=useUploadQueue(taskId);
  const [tab,setTab]=useState<Tab>("info"),[active,setActive]=useState<TaskAction|null>(null),[selected,setSelected]=useState<string[]>([]),[comment,setComment]=useState(""),[busyComment,setBusyComment]=useState(false),[preview,setPreview]=useState<string|null>(null);
  const task=detail.task;
@@ -96,7 +96,7 @@ function TaskPage(){
  const aiSlots=(slots.data??[]).filter(s=>s.kind==="ai");
  const designSlots=(slots.data??[]).filter(s=>s.kind==="design");
  const choices=active==="reject_design"?designSlots:aiSlots;
- const canDiscuss=canSeeComments(me.role);
+ const canDiscuss=canSeeComments(me);
  const confirm=async(v:Values)=>{
   if(!active)return;
   if(active==="reject_ai"&&!selected.length)throw new Error("Выберите хотя бы одно AI-изображение");
@@ -188,7 +188,7 @@ function TaskPage(){
    </section></div>}
   {tab==="comments"&&canDiscuss&&<div className="space-y-3">
    {(comments.data??[]).map(c=><div key={c.id} className="rounded-lg border bg-card p-3 text-sm"><p className="text-xs text-muted-foreground">{detail.profiles.map.get(c.author_id??"")?.full_name??"Сотрудник"} · {fmtDateTime(c.created_at)}</p><p className="whitespace-pre-wrap">{c.body}</p></div>)}
-   {task.status!=="completed"&&task.status!=="cancelled"&&<div className="space-y-2"><Textarea placeholder="Написать комментарий производственному отделу…" value={comment} onChange={e=>setComment(e.target.value)}/><Button disabled={busyComment||!comment.trim()} onClick={submitComment}>Отправить</Button></div>}
+   {task.status!=="completed"&&task.status!=="cancelled"&&hasPermission(me,"comments.write")&&<div className="space-y-2"><Textarea placeholder="Написать комментарий производственному отделу…" value={comment} onChange={e=>setComment(e.target.value)}/><Button disabled={busyComment||!comment.trim()} onClick={submitComment}>Отправить</Button></div>}
   </div>}
   {tab==="history"&&<div className="space-y-2">
    {(events.data??[]).map(e=><details key={e.id} className="rounded-lg border bg-card p-3"><summary className="cursor-pointer text-sm"><History className="inline size-3"/> {ACTION_LABELS[e.action]??e.action} · {fmtDateTime(e.created_at)}</summary><pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{JSON.stringify(e.details,null,2)}</pre></details>)}
