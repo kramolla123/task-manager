@@ -28,9 +28,9 @@ export function AppSidebar() {
 
   const items = [
     { to: "/tasks", label: "Заявки", icon: FolderKanban, show: true },
-    { to: "/analytics", label: "Аналитика", icon: BarChart3, show: canViewAnalytics(me.role) },
-    { to: "/employees", label: "Сотрудники", icon: Users, show: canManageEmployees(me.role) },
-    { to: "/categories", label: "Категории и нормативы", icon: Tags, show: canManageCategories(me.role) },
+    { to: "/analytics", label: "Аналитика", icon: BarChart3, show: canViewAnalytics(me) },
+    { to: "/employees", label: "Сотрудники и роли", icon: Users, show: canManageEmployees(me) },
+    { to: "/categories", label: "Категории и нормативы", icon: Tags, show: canManageCategories(me) },
   ] as const;
 
   return (
@@ -73,7 +73,7 @@ export function AppSidebar() {
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-medium">{personName(me)}</p>
             <p className="truncate text-xs text-muted-foreground" title={user?.email}>
-              {ROLE_LABELS[me.role]}
+              {ROLE_LABELS[me.role] ?? me.role}
             </p>
           </div>
         </div>
