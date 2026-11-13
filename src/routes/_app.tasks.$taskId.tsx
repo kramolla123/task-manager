@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Download, ExternalLink, History, Image as ImageIcon } from "lucide-react";
 import { useTask,useTaskAction } from "@/hooks/use-data";
 import { useSlots,useEvents,useRejections,useComments,useDesignSubmissions,useTestResults } from "@/hooks/use-task-detail";
 import { useMe } from "@/hooks/use-auth";
 import { qk,addComment,signedUrl } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { availableActions,canSeeComments,uploadableKinds,hasPermission } from "@/lib/permissions";
 import { STATUS_LABELS,ACTION_LABELS,ASSET_KIND_LABELS,REJECTION_REASONS,REVIEW_STATE_LABELS } from "@/lib/labels";
 import { fmtDateTime } from "@/lib/format";
@@ -28,7 +29,7 @@ const actionNames:Record<TaskAction,string>={
  submit_design:"Отправить дизайн на проверку",approve_design:"Утвердить дизайн",reject_design:"Доработать дизайн",
  update:"Изменить заявку",deadline:"Изменить дедлайн",cancel:"Отменить заявку"
 };
-function actionFields(action:TaskAction,task:Task,profiles:{id:string;full_name:string|null;role:string}[]):Field[]{
+function actionFields(action:TaskAction,task:Task,profiles:{id:string;full_name:string|null;role:string;permissions?:string[]}[]):Field[]{
  const reason:Field={name:"reason",label:"Причина",type:"textarea",required:true};
  const employees=(r:string)=>profiles.filter(p=>p.role===r || (r==="creator" && p.permissions?.includes("tasks.claim")) || (r==="designer" && p.permissions?.includes("design.submit")) || (r==="stylist" && p.permissions?.includes("styling.finish"))).map(p=>({value:p.id,label:p.full_name||p.id}));
  switch(action){
@@ -85,6 +86,14 @@ function TaskPage(){
  const me=useMe(),qc=useQueryClient();
  const detail=useTask(taskId),slots=useSlots(taskId),events=useEvents(taskId),rejects=useRejections(taskId),comments=useComments(taskId,canSeeComments(me)),design=useDesignSubmissions(taskId),tests=useTestResults(taskId);
  const mutation=useTaskAction(taskId),uploads=useUploadQueue(taskId);
+ const roleGrants=useQuery({
+   queryKey:["rbac","assignments"],
+   queryFn:async()=>{
+    const {data,error}=await supabase.from("app_role_permissions").select("role_slug,permission_key");
+    if(error)throw error;
+    return data??[];
+   },staleTime:15_000
+ });
  const [tab,setTab]=useState<Tab>("info"),[active,setActive]=useState<TaskAction|null>(null),[selected,setSelected]=useState<string[]>([]),[comment,setComment]=useState(""),[busyComment,setBusyComment]=useState(false),[preview,setPreview]=useState<string|null>(null);
  const task=detail.task;
  if(detail.isPending)return <LoadingState/>;
@@ -195,7 +204,7 @@ function TaskPage(){
    {!events.data?.length&&<EmptyState title="История пуста или недоступна"/>}
   </div>}
   <UploadQueueList items={tab==="materials"?[]:uploads.items}/>
-  <CommandDialog open={!!active} onOpenChange={o=>{if(!o)setActive(null)}} title={active?actionNames[active]:"Действие"} fields={active?actionFields(active,task,detail.profiles.list):[]} onSubmit={confirm} destructive={active==="cancel"||active==="reject_ai"||active==="reject_design"}>
+  <CommandDialog open={!!active} onOpenChange={o=>{if(!o)setActive(null)}} title={active?actionNames[active]:"Действие"} fields={active?actionFields(active,task,detail.profiles.list.map(p=>({...p,permissions:p.role==="superuser"?["tasks.claim","design.submit","styling.finish"]:roleGrants.data?.filter(x=>x.role_slug===p.role).map(x=>x.permission_key)}))):[]} onSubmit={confirm} destructive={active==="cancel"||active==="reject_ai"||active==="reject_design"}>
    {(active==="reject_ai"||active==="reject_design")&&<div className="space-y-2"><p className="text-sm">Выберите изображения для доработки:</p>{choices.map(s=><label className="flex items-center gap-2 text-sm" key={s.id}><input type="checkbox" checked={selected.includes(s.id)} onChange={e=>setSelected(old=>e.target.checked?[...old,s.id]:old.filter(id=>id!==s.id))}/>{s.current?.filename??`Фото #${s.slot_number}`}</label>)}</div>}
   </CommandDialog>
   {preview&&<div role="dialog" aria-label="Просмотр изображения" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 p-6" onClick={()=>setPreview(null)}><Button onClick={()=>setPreview(null)}>Закрыть</Button><img src={preview} alt="Материал заявки" className="max-h-[82vh] max-w-full object-contain"/></div>}
