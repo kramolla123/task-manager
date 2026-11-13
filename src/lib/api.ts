@@ -101,7 +101,7 @@ async function selectTasks(
   build: (select: string) => PromiseLike<{ data: unknown; error: unknown }>,
 ): Promise<unknown> {
   for (let i = workingSelect; i < TASK_SELECTS.length; i++) {
-    const { data, error } = await build(TASK_SELECTS[i]);
+    const { data, error } = await build(TASK_SELECTS[i]!);
     if (!error) {
       workingSelect = i;
       return data;
