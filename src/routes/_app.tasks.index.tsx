@@ -56,7 +56,7 @@ function TasksPage() {
   useRealtimeInvalidate("tasks-board", "tasks", [qk.tasks]);
 
   // Default scope: executors see their own work, heads & managers see everything.
-  const defaultScope = !(me.permissions?.includes("tasks.view_all") || me.role==="superuser") ? "mine" : "all";
+  const defaultScope = !(me.permissions?.includes("tasks.view_all") || me.permissions?.includes("tasks.view_design") || me.role==="superuser") ? "mine" : "all";
   const filters: TaskFilters = { ...search, scope: search.scope ?? defaultScope };
   const view = search.view ?? "kanban";
 
