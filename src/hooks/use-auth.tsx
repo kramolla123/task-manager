@@ -50,20 +50,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 60_000,
   });
 
+  const roleSlug = profileQuery.data?.role;
+  const permissionsQuery = useQuery({
+    queryKey: ["my-role-permissions", roleSlug],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("app_role_permissions")
+        .select("permission_key").eq("role_slug", roleSlug!);
+      if (error) throw error;
+      return (data ?? []).map((row) => row.permission_key as string);
+    },
+    enabled: !!roleSlug && roleSlug !== "superuser" && roleSlug !== "pending",
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+  });
+
   const value = useMemo<AuthState>(
     () => ({
       ready,
       session,
       user: session?.user ?? null,
-      profile: profileQuery.data ?? null,
-      profileLoading: !!uid && profileQuery.isPending,
-      profileError: (profileQuery.error as Error | null) ?? null,
+      profile: profileQuery.data ? { ...profileQuery.data, permissions: roleSlug === "superuser" ? ["*"] : permissionsQuery.data ?? [] } : null,
+      profileLoading: !!uid && (profileQuery.isPending || (!!roleSlug && roleSlug !== "superuser" && roleSlug !== "pending" && permissionsQuery.isPending)),
+      profileError: (profileQuery.error as Error | null) ?? (permissionsQuery.error as Error | null) ?? null,
       refetchProfile: () => void profileQuery.refetch(),
       signOut: async () => {
         await supabase.auth.signOut();
       },
     }),
-    [ready, session, uid, profileQuery.data, profileQuery.isPending, profileQuery.error, profileQuery],
+    [ready, session, uid, profileQuery.data, profileQuery.isPending, profileQuery.error, profileQuery, permissionsQuery.data, permissionsQuery.isPending, permissionsQuery.error, roleSlug],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
