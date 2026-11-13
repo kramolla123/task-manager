@@ -30,7 +30,7 @@ export function TaskTable({ tasks, me }: { tasks: Task[]; me: Profile }) {
       {k ? (
         <button
           className="inline-flex items-center gap-1 hover:text-foreground"
-          onClick={() => setSort((s) => ({ key: k, dir: s.key === k ? ((-s.dir) as 1 | -1) : -1 }))}
+          onClick={() => setSort((s) => ({ key: k!, dir: s.key === k ? ((-s.dir) as 1 | -1) : -1 }))}
         >
           {children}
           {sort.key === k && (sort.dir === 1 ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
