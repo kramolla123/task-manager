@@ -55,10 +55,10 @@ export function needsMyAction(task:Task,me:Me|null|undefined) {
 export function uploadableKinds(task: Task, me: Me | null | undefined): AssetKind[] {
  if(!me?.active||me.role==="pending"||isClosed(task))return [];
  const c=context(task,me),s=task.status, out:AssetKind[]=[];
- if(c.owner&&hasPermission(me,"files.upload_manager"))out.push("manager_reference");
- if(s==="stylist" && (!task.stylist_id||c.stylist) && hasPermission(me,"files.upload_stylist"))out.push("stylist_reference");
- if(["in_progress","rework"].includes(s)&&c.creator&&hasPermission(me,"files.upload_ai"))out.push("ai");
- if(["design","design_rework"].includes(s)&&(!task.designer_id||c.designer)&&hasPermission(me,"files.upload_design"))out.push("design");
- if(s==="testing"&&c.owner&&hasPermission(me,"files.upload_test"))out.push("test_screenshot");
+ if((c.owner||c.override)&&hasPermission(me,"files.upload_manager"))out.push("manager_reference");
+ if(s==="stylist" && (!task.stylist_id||c.stylist||c.override) && hasPermission(me,"files.upload_stylist"))out.push("stylist_reference");
+ if(["in_progress","rework"].includes(s)&&(c.creator||c.override)&&hasPermission(me,"files.upload_ai"))out.push("ai");
+ if(["design","design_rework"].includes(s)&&(!task.designer_id||c.designer||c.override)&&hasPermission(me,"files.upload_design"))out.push("design");
+ if(s==="testing"&&(c.owner||c.override)&&hasPermission(me,"files.upload_test"))out.push("test_screenshot");
  return out;
 }
