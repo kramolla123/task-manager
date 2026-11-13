@@ -118,7 +118,7 @@ export function useUploadQueue(taskId: string | null) {
             taskId: tid,
             kind,
             file,
-            slotId: opts?.slotId,
+            ...(opts?.slotId ? { slotId: opts.slotId } : {}),
             onProgress: (progress, stage) => patch(item.id, { progress, stage }),
           });
           ok++;
