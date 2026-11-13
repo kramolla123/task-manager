@@ -48,21 +48,21 @@ export function availableActions(task: Task, me: Me | null | undefined): TaskAct
 
   if (s === "to_do" && (c.head || (me.role === "creator" && (!task.creator_id || c.myCreator))))
     out.push("claim");
-  if ((s === "in_progress" || s === "stylist") && (c.myCreator || c.head)) out.push("set_stylist");
+  if (s === "in_progress" && task.current_cycle === 0 && (c.myCreator || c.head)) out.push("set_stylist");
   if (s === "stylist" && (c.myStylist || c.head)) out.push("finish_stylist");
   if ((s === "in_progress" || s === "rework") && (c.myCreator || c.head)) out.push("submit_ai");
   if (s === "review" && task.stylist_required && (c.myStylist || c.head))
     out.push("stylist_review");
   if (s === "review" && c.head) out.push("approve_ai", "reject_ai");
-  if (s === "ready" && c.route === "testing" && (c.initiator || c.sales || c.head))
+  if (s === "ready" && c.route === "testing" && (c.initiator || c.head))
     out.push("start_test");
-  if (s === "testing" && (c.initiator || c.sales || c.head)) out.push("finish_test");
+  if (s === "testing" && (c.initiator || c.head)) out.push("finish_test");
   if ((s === "design" || s === "design_rework") && (c.myDesigner || c.head))
     out.push("submit_design");
   if (s === "design_review" && c.head) out.push("approve_design", "reject_design");
   if (!c.closed && c.head) out.push("assign");
   if (!c.closed && (c.initiator || c.head || c.salesHead)) out.push("update");
-  if (!c.closed && (c.head || c.salesHead)) out.push("deadline");
+  if (!c.closed && c.head) out.push("deadline");
   if (!c.closed && (c.initiator || c.head || c.salesHead)) out.push("cancel");
   return out;
 }
@@ -92,11 +92,11 @@ export function uploadableKinds(task: Task, me: Me | null | undefined): AssetKin
   if (c.closed) return [];
   const s = task.status;
   const out: AssetKind[] = [];
-  if (c.initiator || c.sales || c.head) out.push("manager_reference");
-  if ((c.myStylist || c.head) && ["stylist", "in_progress", "review", "rework"].includes(s))
+  if (c.initiator) out.push("manager_reference");
+  if (me.role === "stylist" && s === "stylist" && (!task.stylist_id || c.myStylist))
     out.push("stylist_reference");
-  if ((c.myCreator || c.head) && ["in_progress", "rework", "stylist"].includes(s)) out.push("ai");
-  if ((c.myDesigner || c.head) && ["design", "design_rework"].includes(s)) out.push("design");
-  if ((c.initiator || c.sales || c.head) && s === "testing") out.push("test_screenshot");
+  if (c.myCreator && ["in_progress", "rework"].includes(s)) out.push("ai");
+  if (me.role === "designer" && (c.myDesigner || !task.designer_id) && ["design", "design_rework"].includes(s)) out.push("design");
+  if (c.initiator && s === "testing") out.push("test_screenshot");
   return out;
 }
