@@ -20,7 +20,7 @@ function CategoriesPage(){
  if(q.error)return <ErrorState error={q.error} onRetry={()=>q.refetch()}/>;
  const canEdit=me.role==="production_head";
  const save=async()=>{
-  if(!editing?.name?.trim() || !editing?.route || !(Number(editing.deadline_days)>0)) return toast.error("Заполните название, маршрут и норматив");
+  if(!editing?.name?.trim() || !editing?.route || !(Number(editing.deadline_days)>0)) {toast.error("Заполните название, маршрут и норматив");return;}
   setBusy(true);
   try{
    await saveCategory({...editing,name:editing.name.trim(),deadline_days:Number(editing.deadline_days)});
