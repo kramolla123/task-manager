@@ -1,4 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { BarChart3, FolderKanban, LogOut, Moon, Sun, Tags, Users } from "lucide-react";
 import {
   Sidebar,
@@ -25,6 +27,11 @@ export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const roleTitle=useQuery({
+    queryKey:["app-role-name",me.role],
+    queryFn:async()=>{const {data,error}=await supabase.from("app_roles").select("name").eq("slug",me.role).maybeSingle();if(error)throw error;return data?.name;},
+    staleTime:30_000
+  });
 
   const items = [
     { to: "/tasks", label: "Заявки", icon: FolderKanban, show: true },
@@ -73,7 +80,7 @@ export function AppSidebar() {
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-medium">{personName(me)}</p>
             <p className="truncate text-xs text-muted-foreground" title={user?.email}>
-              {ROLE_LABELS[me.role] ?? me.role}
+              {roleTitle.data ?? ROLE_LABELS[me.role] ?? me.role}
             </p>
           </div>
         </div>
