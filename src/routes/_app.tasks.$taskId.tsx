@@ -90,7 +90,9 @@ function TaskPage(){
   if(active==="reject_ai"&&!selected.length)throw new Error("Выберите хотя бы одно AI-изображение");
   if(active==="reject_design"&&designSlots.length>0&&!selected.length)throw new Error("Выберите файлы дизайна");
   if(active==="assign"&&!val.str(v["creator_id"])&&!val.str(v["designer_id"]))throw new Error("Выберите исполнителя");
-  await mutation.mutateAsync({action:active,payload:payloadFor(active,v,selected),success:"Действие выполнено"});
+  const payload=payloadFor(active,v,selected);
+  if(active==="update"||active==="deadline")payload["expected_version"]=task.version;
+  await mutation.mutateAsync({action:active,payload,success:"Действие выполнено"});
   setSelected([]);
   await Promise.all([qc.invalidateQueries({queryKey:qk.task(taskId)}),qc.invalidateQueries({queryKey:qk.tasks})]);
  };
