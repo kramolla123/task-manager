@@ -69,8 +69,8 @@ function EmployeesPage(){
  const changeGrant=(key:string,yes:boolean)=>setDraft(d=>d?{...d,permissions:yes?[...new Set([...d.permissions,key])]:d.permissions.filter(x=>x!==key)}:d);
  const saveRole=async()=>{
   if(!draft||!isRoot)return;
-  if(!/^[a-z][a-z0-9_]{2,39}$/.test(draft.slug))return toast.error("Код роли: 3–40 латинских букв, цифры и _");
-  if(draft.name.trim().length<2)return toast.error("Введите название роли");
+  if(!/^[a-z][a-z0-9_]{2,39}$/.test(draft.slug)){toast.error("Код роли: 3–40 латинских букв, цифры и _");return;}
+  if(draft.name.trim().length<2){toast.error("Введите название роли");return;}
   setBusy("role");
   try{
    await manageRole({action:draft.isNew?"create":"update",slug:draft.slug,name:draft.name.trim(),description:draft.description,permissions:draft.permissions,active:draft.active});
