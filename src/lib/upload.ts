@@ -61,7 +61,7 @@ async function uploadToStorage(path: string, file: File, onProgress?: (p: number
     // Network-level failure of the XHR path: fall back to supabase-js upload.
     const { error } = await supabase.storage
       .from(ASSET_BUCKET)
-      .upload(path, file, { upsert: false, contentType: file.type || undefined });
+      .upload(path, file, { upsert: false, ...(file.type ? { contentType: file.type } : {}) });
     if (error) throw new AppError(error.message);
     onProgress?.(100);
   }
