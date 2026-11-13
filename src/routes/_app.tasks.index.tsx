@@ -32,17 +32,17 @@ export const Route = createFileRoute("/_app/tasks/")({
     ],
   }),
   validateSearch: (s: Record<string, unknown>): TasksSearch => ({
-    view: s.view === "table" ? "table" : undefined,
-    scope: s.scope === "all" ? "all" : s.scope === "mine" ? "mine" : undefined,
-    number: str(s.number),
-    ld: str(s.ld),
-    category: str(s.category),
-    status: (TASK_STATUSES as readonly string[]).includes(String(s.status)) ? (s.status as TaskStatus) : undefined,
-    initiator: str(s.initiator),
-    executor: str(s.executor),
-    priority: ["Low", "Medium", "High"].includes(String(s.priority)) ? (s.priority as TaskFilters["priority"]) : undefined,
-    deadline: ["overdue", "today", "week", "none"].includes(String(s.deadline)) ? (s.deadline as TaskFilters["deadline"]) : undefined,
-    showClosed: s.showClosed === true || s.showClosed === "true" ? true : undefined,
+    view: s["view"] === "table" ? "table" : undefined,
+    scope: s["scope"] === "all" ? "all" : s["scope"] === "mine" ? "mine" : "all",
+    number: str(s["number"]),
+    ld: str(s["ld"]),
+    category: str(s["category"]),
+    status: (TASK_STATUSES as readonly string[]).includes(String(s["status"])) ? (s["status"] as TaskStatus) : undefined,
+    initiator: str(s["initiator"]),
+    executor: str(s["executor"]),
+    priority: ["Low", "Medium", "High"].includes(String(s["priority"])) ? (s["priority"] as TaskFilters["priority"]) : undefined,
+    deadline: ["overdue", "today", "week", "none"].includes(String(s["deadline"])) ? (s["deadline"] as TaskFilters["deadline"]) : undefined,
+    showClosed: s["showClosed"] === true || s["showClosed"] === "true" ? true : undefined,
   }),
   component: TasksPage,
 });
@@ -68,9 +68,9 @@ function TasksPage() {
   const overdue = filtered.filter((t) => isOverdue(t)).length;
 
   const statuses = useMemo(() => {
-    if (filters.status) return [filters.status];
-    return TASK_STATUSES.filter((s) => (filters.showClosed ? true : s !== "completed" && s !== "cancelled"));
-  }, [filters.status, filters.showClosed]);
+    if (filters["status"]) return [filters["status"]];
+    return TASK_STATUSES.filter((s) => (filters["showClosed"] ? true : s !== "completed" && s !== "cancelled"));
+  }, [filters["status"], filters["showClosed"]]);
 
   return (
     <div className="space-y-4">
@@ -93,7 +93,7 @@ function TasksPage() {
         }
         actions={
           <>
-            <ToggleGroup type="single" size="sm" variant="outline" value={filters.scope} onValueChange={(v) => v && update({ scope: v as "mine" | "all" })}>
+            <ToggleGroup type="single" size="sm" variant="outline" value={filters["scope"]} onValueChange={(v) => v && update({ scope: v as "mine" | "all" })}>
               <ToggleGroupItem value="mine" className="px-3 text-xs">Мои</ToggleGroupItem>
               <ToggleGroupItem value="all" className="px-3 text-xs">Все</ToggleGroupItem>
             </ToggleGroup>
