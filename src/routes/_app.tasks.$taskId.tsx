@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Download, ExternalLink, History, Image as ImageIcon } from "lucide-react";
@@ -68,6 +68,18 @@ function payloadFor(action:TaskAction,v:Values,selected:string[]):Record<string,
  return {};
 }
 function DetailRow({title,children}:{title:string;children:ReactNode}){return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{title}</dt><dd className="mt-1 break-words text-sm">{children||"—"}</dd></div>}
+function AssetThumbnail({slot}:{slot:AssetSlot}){
+ const [url,setUrl]=useState<string|null>(null);
+ useEffect(()=>{
+  let cancelled=false;
+  setUrl(null);
+  const path=slot.current?.storage_path;
+  if(path) signedUrl(path).then(value=>{if(!cancelled)setUrl(value)}).catch(()=>{});
+  return ()=>{cancelled=true};
+ },[slot.current?.storage_path]);
+ if(!url)return <ImageIcon className="size-6 text-muted-foreground"/>;
+ return <img src={url} alt={slot.current?.filename??"Материал"} loading="lazy" className="h-36 w-full rounded-md object-contain"/>;
+}
 function TaskPage(){
  const {taskId}=Route.useParams();
  const me=useMe(),qc=useQueryClient();
@@ -139,9 +151,9 @@ function TaskPage(){
     return <section key={kind} className="space-y-3 rounded-xl border bg-card p-4"><h2 className="font-semibold">{label} <span className="text-sm font-normal text-muted-foreground">({group.length})</span></h2>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{group.map(slot=><div key={slot.id} className="rounded-lg border p-3 space-y-2">
      <div className="flex items-center justify-between gap-2"><span className="text-sm">Фото #{slot.slot_number}</span><span className="text-xs text-muted-foreground">{REVIEW_STATE_LABELS[slot.review_state]}</span></div>
-     {slot.current?<><button type="button" onClick={()=>openAsset(slot)} className="flex min-h-28 w-full flex-col items-center justify-center rounded-md bg-muted p-3 text-sm"><ImageIcon className="size-6"/><span className="mt-2 break-all">{slot.current.filename}</span><span className="text-xs">Версия {slot.current.version_number}</span></button>
+     {slot.current?<><button type="button" onClick={()=>openAsset(slot)} className="flex min-h-28 w-full flex-col items-center justify-center rounded-md bg-muted p-3 text-sm"><AssetThumbnail slot={slot}/><span className="mt-2 break-all">{slot.current.filename}</span><span className="text-xs">Версия {slot.current.version_number}</span></button>
      <Button size="sm" variant="outline" onClick={()=>openAsset(slot,true)}><Download className="size-3"/> Скачать</Button>
-     <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">История версий ({slot.versions.length})</summary>{slot.versions.map(version=><p key={version.id}>v{version.version_number} · {version.filename} · {fmtDateTime(version.created_at)}</p>)}</details>
+     <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">История версий ({slot.versions.length})</summary>{slot.versions.map(version=><div key={version.id} className="flex items-center gap-2"><button type="button" className="text-primary underline" onClick={async()=>{try{setPreview(await signedUrl(version.storage_path));}catch(e){toast.error(e instanceof Error?e.message:"Нет доступа");}}}>v{version.version_number}</button><span>{version.filename} · {fmtDateTime(version.created_at)}</span></div>)}</details>
      </>:<p className="text-sm text-muted-foreground">Файл не зарегистрирован</p>}
      {enabled&&((kind==="ai"&&slot.review_state==="rejected")||kind==="design"||kind==="manager_reference")&&<FileDropzone compact hint="Заменить этот файл" onFiles={files=>upload(kind,files.slice(0,1),slot.id)}/>}
     </div>)}</div>
