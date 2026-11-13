@@ -56,7 +56,7 @@ function TasksPage() {
   useRealtimeInvalidate("tasks-board", "tasks", [qk.tasks]);
 
   // Default scope: executors see their own work, heads & managers see everything.
-  const defaultScope = ["creator", "stylist", "designer"].includes(me.role) ? "mine" : "all";
+  const defaultScope = !(me.permissions?.includes("tasks.view_all") || me.role==="superuser") ? "mine" : "all";
   const filters: TaskFilters = { ...search, scope: search.scope ?? defaultScope };
   const view = search.view ?? "kanban";
 
@@ -101,7 +101,7 @@ function TasksPage() {
               <ToggleGroupItem value="kanban" aria-label="Канбан" title="Канбан"><Columns3 /></ToggleGroupItem>
               <ToggleGroupItem value="table" aria-label="Таблица" title="Таблица"><Rows3 /></ToggleGroupItem>
             </ToggleGroup>
-            {canCreateTask(me.role) && (
+            {canCreateTask(me) && (
               <Button size="sm" onClick={() => setCreateOpen(true)}>
                 <Plus /> Новая заявка
               </Button>
@@ -123,8 +123,8 @@ function TasksPage() {
       ) : tasks.length === 0 ? (
         <EmptyState
           title="Заявок пока нет"
-          description={canCreateTask(me.role) ? "Создайте первую заявку — она появится в колонке «К выполнению»." : "Как только менеджеры создадут заявки, они появятся здесь."}
-          action={canCreateTask(me.role) && <Button size="sm" onClick={() => setCreateOpen(true)}><Plus /> Новая заявка</Button>}
+          description={canCreateTask(me) ? "Создайте первую заявку — она появится в колонке «К выполнению»." : "Как только менеджеры создадут заявки, они появятся здесь."}
+          action={canCreateTask(me) && <Button size="sm" onClick={() => setCreateOpen(true)}><Plus /> Новая заявка</Button>}
         />
       ) : filtered.length === 0 ? (
         <EmptyState title="Ничего не найдено" description="Измените фильтры или переключитесь на «Все»." />
